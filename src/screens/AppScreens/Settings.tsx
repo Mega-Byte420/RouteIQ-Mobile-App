@@ -23,7 +23,7 @@ import {hp} from '../../utils/constants';
 import {size} from '../../utils/responsiveFonts';
 import GuardianIcon from '../../assets/svgs/GuardianIcon';
 import {useAppDispatch} from '../../store/hooks';
-import {saveToken, setLogout} from '../../store/user/userSlices';
+import {clearUserInfo, setLogout} from '../../store/user/userSlices';
 import {Alert} from 'react-native';
 
 export default function Settings() {
@@ -210,8 +210,10 @@ export default function Settings() {
                 {
                   text: 'Yes',
                   onPress: () => {
+                    // Clear all user info and token
+                    dispatch(clearUserInfo());
                     dispatch(setLogout(true));
-                    dispatch(saveToken(null));
+                    // Navigation will automatically redirect to AuthStack when token is cleared
                   },
                 },
               ],

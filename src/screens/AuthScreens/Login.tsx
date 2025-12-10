@@ -49,24 +49,82 @@ const Login = () => {
   const onSubmit = async (data: {email: string; password: string}) => {
     try {
       setLoading(true);
+      console.log('Attempting login with email:', data.email);
       
       // Call login API
       const response = await authAPI.login(data.email, data.password);
       
-      // Extract token from response (adjust based on your API response structure)
-      const token = response.token || response.accessToken || response.data?.token;
+      // Log full response for debugging
+      console.log('📥 Login response received:', JSON.stringify(response, null, 2));
+      console.log('📥 Response type:', typeof response);
+      console.log('📥 Response keys:', response ? Object.keys(response) : 'No response');
+      
+      // Extract token from response - try multiple possible structures
+      let token = null;
+      
+      // Try different response structures
+      if (typeof response === 'string') {
+        // Response might be just the token string
+        token = response;
+      } else if (response?.token) {
+        // Direct token property
+        token = response.token;
+      } else if (response?.data?.token) {
+        // Nested data.token
+        token = response.data.token;
+      } else if (response?.accessToken) {
+        // accessToken property
+        token = response.accessToken;
+      } else if (response?.access_token) {
+        // access_token property (snake_case)
+        token = response.access_token;
+      } else if (response?.data?.accessToken) {
+        // Nested data.accessToken
+        token = response.data.accessToken;
+      } else if (response?.data?.access_token) {
+        // Nested data.access_token
+        token = response.data.access_token;
+      }
+      
+      console.log('🔑 Token extraction result:', {
+        found: !!token,
+        tokenLength: token ? token.length : 0,
+        tokenPreview: token ? token.substring(0, 50) + '...' : 'No token',
+      });
       
       if (!token) {
-        Alert.alert('Error', 'No token received from server');
+        console.error('❌ No token found in response. Response structure:', response);
+        Alert.alert(
+          'Error', 
+          'No token received from server. Please check the console for details.'
+        );
         setLoading(false);
         return;
       }
 
       // Decode JWT to get user info
+      console.log('🔐 Attempting to decode token...');
       const decodedToken = decodeJWT(token);
       
       if (!decodedToken) {
-        Alert.alert('Error', 'Invalid token received');
+        console.error('❌ Failed to decode token. Token value:', token);
+        Alert.alert(
+          'Error', 
+          'Invalid token received. Please check the console for details.'
+        );
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ Token decoded successfully:', {
+        userId: decodedToken.sub,
+        username: decodedToken.username,
+        role: decodedToken.role,
+      });
+
+      // Check if token is expired (shouldn't happen on fresh login, but good to check)
+      if (decodedToken.exp && decodedToken.exp * 1000 < Date.now()) {
+        Alert.alert('Error', 'Token has expired. Please try again.');
         setLoading(false);
         return;
       }
@@ -79,10 +137,29 @@ const Login = () => {
       setLoading(false);
     } catch (error: any) {
       setLoading(false);
-      Alert.alert(
-        'Login Failed',
-        error.message || 'Invalid email or password. Please try again.'
-      );
+      // Log error for debugging
+      console.error('Login error:', error);
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Invalid email or password. Please try again.';
+      let errorTitle = 'Login Failed';
+      
+      if (error.message) {
+        errorMessage = error.message;
+        // Check if it's a network error
+        if (error.code === 'NETWORK_ERROR' || error.status === 0 || error.message.includes('Network')) {
+          errorTitle = 'Connection Error';
+        }
+      } else if (error.status === 0) {
+        errorTitle = 'Connection Error';
+        errorMessage = 'Network error. Please check your connection and ensure the server is running.';
+      } else if (error.status === 401) {
+        errorMessage = 'Invalid credentials. Please check your email and password.';
+      } else if (error.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      Alert.alert(errorTitle, errorMessage);
     }
   };
 
