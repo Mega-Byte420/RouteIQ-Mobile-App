@@ -19,7 +19,7 @@ import {useNavigation} from '@react-navigation/native';
 import GlobalIcon from '../../components/GlobalIcon';
 import AppButton from '../../components/AppButton';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {saveToken, setLogout} from '../../store/user/userSlices';
+import {clearUserInfo, setLogout} from '../../store/user/userSlices';
 import {Alert} from 'react-native';
 
 const DriverProfile = () => {
@@ -192,8 +192,10 @@ const DriverProfile = () => {
                   {
                     text: 'Yes',
                     onPress: () => {
+                      // Clear all user info and token
+                      dispatch(clearUserInfo());
                       dispatch(setLogout(true));
-                      dispatch(saveToken(null));
+                      // Navigation will automatically redirect to AuthStack when token is cleared
                     },
                   },
                 ],

@@ -103,8 +103,6 @@ function DriverBottomTabs() {
             name={name}
             component={component}
             options={({route}) => {
-              console.log(route, 'route');
-
               return {
                 headerShown,
                 tabBarLabel: label,
