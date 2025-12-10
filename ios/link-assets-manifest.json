@@ -1,0 +1,65 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/fontello.eot",
+      "sha1": "0e8e59747d3c78de1e1b092efda2e1b575a51ffc"
+    },
+    {
+      "path": "src/assets/fonts/fontello.svg",
+      "sha1": "5ba0dc143e13e935fc6e2e7f405c03429a079f8c"
+    },
+    {
+      "path": "src/assets/fonts/fontello.ttf",
+      "sha1": "f503a883ab7d2b5c8d0ac6f5d075cef9fa630a35"
+    },
+    {
+      "path": "src/assets/fonts/fontello.woff",
+      "sha1": "7672111cef94b28fd0096dfd39cd1ae811ddaf7f"
+    },
+    {
+      "path": "src/assets/fonts/fontello.woff2",
+      "sha1": "fb0f23eeb7a7b166a9ec8f0a92ab8de8cd36b273"
+    },
+    {
+      "path": "src/assets/fonts/icomoon.eot",
+      "sha1": "b542528bba1a88c183f85526e76c8c0fb5e44409"
+    },
+    {
+      "path": "src/assets/fonts/icomoon.svg",
+      "sha1": "c2389727e6c6f0026e613f41a303df0577ad6af7"
+    },
+    {
+      "path": "src/assets/fonts/icomoon.ttf",
+      "sha1": "f68fba7511c24c8f0d202d4589aa8b0feb73a19b"
+    },
+    {
+      "path": "src/assets/fonts/icomoon.woff",
+      "sha1": "84fb479aec43355380dd6e5ac2992bfe60ff672d"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSansBold.ttf",
+      "sha1": "9bac6650ac507968089985e02ba424a84b27ab12"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSansExtraBold.ttf",
+      "sha1": "99a4d6de5d5bf8e15d9ddcf857a2ad3e2dfde436"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSansLight.ttf",
+      "sha1": "794c5e24d84a89ac9796eda2a4ba770f865598fc"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSansMedium.ttf",
+      "sha1": "036f3dbc6e6088809d1b2b7bcb0939988ad07bf8"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSansRegular.ttf",
+      "sha1": "466635ba024c43f741e320148a159557fd732ec0"
+    },
+    {
+      "path": "src/assets/fonts/NunitoSansSemiBold.ttf",
+      "sha1": "b711d63c786e5a61d89f8918ab36925274bd591b"
+    }
+  ]
+}
