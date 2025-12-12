@@ -214,5 +214,28 @@ export const authAPI = {
   },
 };
 
+// Parent APIs
+export const parentAPI = {
+  /**
+   * Fetch students for the current parent.
+   * The backend can derive the parent from the JWT; we also send parentId for clarity.
+   */
+  getStudentsByParentId: async (parentId?: number | string) => {
+    try {
+      const response = await api.get('/parent/studentsByParentsId', {
+        params: parentId ? { parentId } : undefined,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('❌ Fetch students by parent failed:', {
+        message: (error as any)?.message,
+        status: (error as any)?.response?.status,
+        data: (error as any)?.response?.data,
+      });
+      throw error;
+    }
+  },
+};
+
 export default api;
 

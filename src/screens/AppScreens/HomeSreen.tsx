@@ -27,14 +27,16 @@ import AppStyles from '../../styles/AppStyles';
 import AppFonts from '../../utils/appFonts';
 import {AppColors} from '../../utils/color';
 import {hp, screenHeight, screenWidth} from '../../utils/constants';
-import {childDropDown, leaveDropdownData} from '../../utils/DummyData';
+import {leaveDropdownData} from '../../utils/DummyData';
 import {size} from '../../utils/responsiveFonts';
 import AppCustomModal from '../../components/AppCustomModal';
 import {useForm} from 'react-hook-form';
 import ElephantIcon from '../../assets/svgs/ElephantIcon';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {setStudentAbsentModal} from '../../store/user/userSlices';
+import {setSelectedChild, setStudentAbsentModal} from '../../store/user/userSlices';
 import MultiSelectDropdown from '../../components/MultiSelectDropdown';
+import {parentAPI} from '../../utils/api';
+const fallbackChildImage = require('../../assets/images/child1.jpg');
 
 export default function HomeSreen() {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -44,6 +46,11 @@ export default function HomeSreen() {
     state => state.userSlices.studentAbsentModal,
   );
   const selectedChild = useAppSelector(state => state.userSlices.selectedChild);
+  const role = useAppSelector(state => state.userSlices.role);
+  const userId = useAppSelector(state => state.userSlices.userId);
+  const [childrenOptions, setChildrenOptions] = useState<any[]>([]);
+  const [childrenLoading, setChildrenLoading] = useState(false);
+  const [childrenError, setChildrenError] = useState('');
   const [isEnabled, setIsEnabled] = useState(false);
   const [selectAbsence, setSelectAbsence] = useState('');
   const [preview, setPreview] = useState(false);
@@ -152,6 +159,75 @@ export default function HomeSreen() {
     }
   }, [selectAbsence]);
 
+  // Fetch students for the parent from the API and bind to dropdown
+  useEffect(() => {
+    const isParent =
+      role && (role.toUpperCase() === 'PARENT' || role.toUpperCase() === 'PARENTS');
+    if (!isParent || !userId) {
+      return;
+    }
+
+    const fetchStudents = async () => {
+      try {
+        setChildrenLoading(true);
+        setChildrenError('');
+        const response = await parentAPI.getStudentsByParentId(userId);
+        const students = response?.data || [];
+        const mapped = students.map((s: any) => ({
+          title:
+            `${s.FirstName || ''} ${s.LastName || ''}`.trim() || 'Unknown student',
+          image:
+            typeof s.image === 'string' && s.image.length > 0
+              ? {uri: s.image}
+              : fallbackChildImage,
+          raw: s,
+        }));
+        setChildrenOptions(mapped);
+        if (mapped.length === 1) {
+          dispatch(setSelectedChild(mapped[0]));
+        }
+      } catch (err: any) {
+        setChildrenError(
+          err?.message || 'Unable to load students. Please try again.',
+        );
+      } finally {
+        setChildrenLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [role, userId, dispatch]);
+
+  const handleSelectChild = (item: any) => {
+    dispatch(setSelectedChild(item));
+  };
+
+  const childName = childrenError
+    ? 'Students unavailable'
+    : (selectedChild as any)?.title ||
+      `${(selectedChild as any)?.FirstName || ''} ${(selectedChild as any)?.LastName || ''}`.trim() ||
+      'Select Child';
+  const selectedImage = (selectedChild as any)?.image;
+  const childImage =
+    typeof selectedImage === 'string'
+      ? {uri: selectedImage}
+      : selectedImage || fallbackChildImage;
+  const busNumberRaw =
+    (selectedChild as any)?.raw?.BusNo ||
+    (selectedChild as any)?.BusNo ||
+    null;
+  const busNumberValue = childrenLoading
+    ? 'Loading...'
+    : childrenError
+    ? 'N/A'
+    : selectedChild && busNumberRaw
+    ? String(busNumberRaw)
+    : 'N/A';
+  const busNumberDisplay =
+    busNumberValue && busNumberValue.length > 8
+      ? busNumberValue.slice(0, 8)
+      : busNumberValue;
+
   return (
     <AppLayout
       style={styles.layoutContainer}
@@ -164,13 +240,16 @@ export default function HomeSreen() {
         source={require('../../assets/images/rectangle.png')}>
         <AppHeader
           role="ParentsDropDown"
-          title="Mark Tommay"
+          title={childName}
           rightIcon={true}
           onPressLeftIcon={() => {
             navigation.navigate('Settings');
           }}
           onPressRightIcon={() => navigation.navigate('Notification')}
           containerStyle={{backgroundColor: '#141516'}}
+          childrenOptions={childrenOptions}
+          selectedChildOption={selectedChild}
+          onSelectChild={item => handleSelectChild(item)}
         />
         <View style={[AppStyles.rowBetween, styles.headerBottomContainer]}>
           <View style={styles.headerTitle}>
@@ -186,14 +265,19 @@ export default function HomeSreen() {
                   fontFamily: AppFonts.NunitoSansBold,
                 },
               ]}>
-              B456788
+              {busNumberDisplay}
             </Text>
           </View>
           <View style={styles.imageContainer}>
-            <Image
-              style={styles.image}
-              source={selectedChild?.image || childDropDown[0]?.image}
-            />
+            {childImage ? (
+              <Image style={styles.image} source={childImage} />
+            ) : (
+              <View style={[styles.image, styles.fallbackImage]}>
+                <Text style={styles.fallbackImageText} numberOfLines={2}>
+                  {childName}
+                </Text>
+              </View>
+            )}
           </View>
           <View style={[styles.headerTitle, {paddingTop: hp(0.2)}]}>
             <View style={[AppStyles.rowCenter, {gap: 5}]}>
@@ -432,6 +516,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     height: hp(15),
     width: hp(15),
+    right: 10,
   },
   driverProfile: {height: hp(4), width: hp(4), borderRadius: hp(4)},
   container: {
@@ -463,6 +548,18 @@ const styles = StyleSheet.create({
     borderRadius: hp(10),
     position: 'absolute',
     top: 15,
+  },
+  fallbackImage: {
+    backgroundColor: AppColors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: hp(1),
+  },
+  fallbackImageText: {
+    textAlign: 'center',
+    color: AppColors.black,
+    fontFamily: AppFonts.NunitoSansSemiBold,
+    fontSize: size.sl,
   },
   bottomContainer: {
     zIndex: 1,

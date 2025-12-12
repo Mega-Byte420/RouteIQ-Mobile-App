@@ -50,6 +50,9 @@ export interface AppHeaderProps {
   handleBack?: any;
   profile_image?: boolean;
   createRightIcon?: React.ReactElement;
+  childrenOptions?: any[];
+  selectedChildOption?: any;
+  onSelectChild?: (item: any, index: number) => void;
 }
 
 export interface AppButtonProps {
