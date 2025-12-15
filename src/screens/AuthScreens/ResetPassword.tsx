@@ -1,7 +1,7 @@
 import {useNavigation} from '@react-navigation/native';
-import React from 'react';
+import React, {useState} from 'react';
 import {Controller, useForm} from 'react-hook-form';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import AppButton from '../../components/AppButton';
 import AppInput from '../../components/AppInput';
 import GlobalIcon from '../../components/GlobalIcon';
@@ -12,10 +12,12 @@ import {AppColors} from '../../utils/color';
 import {hp, wp} from '../../utils/constants';
 import {fontSize, size} from '../../utils/responsiveFonts';
 import {useAppSelector} from '../../store/hooks';
+import {authAPI} from '../../utils/api';
 
 const ResetPassword = ({route}: any) => {
   const type = useAppSelector(state => state.userSlices.forgotType);
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const {
     control,
@@ -27,8 +29,32 @@ const ResetPassword = ({route}: any) => {
     },
   });
 
-  const onSubmit = () => {
-    navigation.navigate('VerificationCode');
+  const onSubmit = async (data: {email: string}) => {
+    try {
+      setLoading(true);
+      const resp = await authAPI.requestPasswordReset(data.email);
+      if (resp?.success) {
+        navigation.navigate('VerificationCode', {
+          email: resp.email || data.email,
+          username: resp.username,
+          userId: resp.userid,
+          otp: resp.otp, // keep if you want to prefill or debug
+        });
+      } else {
+        Alert.alert('Error', resp?.message || 'Could not send reset code.');
+      }
+    } catch (err: any) {
+      const apiMessage = err?.response?.data?.message;
+      const friendlyMessage = Array.isArray(apiMessage)
+        ? apiMessage.join('\n')
+        : apiMessage || err?.message || 'Could not send reset code. Please try again.';
+      Alert.alert(
+        'Error',
+        friendlyMessage,
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -75,7 +101,8 @@ const ResetPassword = ({route}: any) => {
             />
             <AppButton
               onPress={handleSubmit(onSubmit)}
-              title="Continue"
+              title={loading ? 'Please wait...' : 'Continue'}
+              disabled={loading}
               style={{marginTop: hp(10)}}
             />
           </View>

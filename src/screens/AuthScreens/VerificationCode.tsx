@@ -1,7 +1,7 @@
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import OTPInputView from '@twotalltotems/react-native-otp-input';
 import React, {useState} from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import AppButton from '../../components/AppButton';
 import AuthLayout from '../../layout/AuthLayout';
 import AppStyles from '../../styles/AppStyles';
@@ -11,12 +11,17 @@ import {hp, wp} from '../../utils/constants';
 import {fontSize, size} from '../../utils/responsiveFonts';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {saveToken} from '../../store/user/userSlices';
+import {authAPI} from '../../utils/api';
 
 const VerificationCode = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
   const role = useAppSelector(state => state.userSlices.role);
+  const email = route.params?.email;
+  const userId = route.params?.userId;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -46,15 +51,37 @@ const VerificationCode = () => {
             />
             <Text style={styles.timerText}>00:30</Text>
             <AppButton
-              onPress={() => {
-                if (role === 'Retail') {
-                  navigation.navigate('HomeSreen');
-                  dispatch(saveToken(true));
-                } else {
-                   
+              onPress={async () => {
+                if (!otp || otp.length !== 4) {
+                  Alert.alert('Error', 'Please enter the 4-digit code.');
+                  return;
+                }
+                try {
+                  setLoading(true);
+                  const resp = await authAPI.verifyOtp({email, otp});
+                  if (resp?.success) {
+                    navigation.navigate('NewPassword', {email, userId});
+                  } else {
+                    const friendlyMessage = Array.isArray(resp?.message)
+                      ? resp?.message.join('\n')
+                      : resp?.message || 'Invalid OTP.';
+                    Alert.alert('Error', friendlyMessage);
+                  }
+                } catch (err: any) {
+                  const apiMessage = err?.response?.data?.message;
+                  const friendlyMessage = Array.isArray(apiMessage)
+                    ? apiMessage.join('\n')
+                    : apiMessage || err?.message || 'OTP verification failed. Please try again.';
+                  Alert.alert(
+                    'Error',
+                    friendlyMessage,
+                  );
+                } finally {
+                  setLoading(false);
                 }
               }}
-              title="Continue"
+              title={loading ? 'Verifying...' : 'Continue'}
+              disabled={loading}
               style={{marginTop: hp(10)}}
             />
 
