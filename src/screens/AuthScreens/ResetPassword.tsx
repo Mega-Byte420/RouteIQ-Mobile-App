@@ -1,5 +1,5 @@
 import {useNavigation} from '@react-navigation/native';
-import React, {useState} from 'react';
+import React from 'react';
 import {Controller, useForm} from 'react-hook-form';
 import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import AppButton from '../../components/AppButton';
@@ -11,13 +11,17 @@ import AppFonts from '../../utils/appFonts';
 import {AppColors} from '../../utils/color';
 import {hp, wp} from '../../utils/constants';
 import {fontSize, size} from '../../utils/responsiveFonts';
-import {useAppSelector} from '../../store/hooks';
-import {authAPI} from '../../utils/api';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {requestPasswordResetThunk} from '../../store/auth/authRecoverySlice';
 
 const ResetPassword = ({route}: any) => {
   const type = useAppSelector(state => state.userSlices.forgotType);
   const navigation = useNavigation();
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const requestStatus = useAppSelector(
+    state => state.authRecoverySlice.requestStatus,
+  );
+  const loading = requestStatus === 'loading';
 
   const {
     control,
@@ -31,29 +35,21 @@ const ResetPassword = ({route}: any) => {
 
   const onSubmit = async (data: {email: string}) => {
     try {
-      setLoading(true);
-      const resp = await authAPI.requestPasswordReset(data.email);
-      if (resp?.success) {
-        navigation.navigate('VerificationCode', {
-          email: resp.email || data.email,
-          username: resp.username,
-          userId: resp.userid,
-          otp: resp.otp, // keep if you want to prefill or debug
-        });
-      } else {
-        Alert.alert('Error', resp?.message || 'Could not send reset code.');
-      }
+      const resp: any = await dispatch(
+        requestPasswordResetThunk(data.email),
+      ).unwrap();
+      navigation.navigate('VerificationCode', {
+        email: resp?.email || data.email,
+        username: resp?.username,
+        userId: resp?.userid,
+        otp: resp?.otp,
+      });
     } catch (err: any) {
-      const apiMessage = err?.response?.data?.message;
-      const friendlyMessage = Array.isArray(apiMessage)
-        ? apiMessage.join('\n')
-        : apiMessage || err?.message || 'Could not send reset code. Please try again.';
-      Alert.alert(
-        'Error',
-        friendlyMessage,
-      );
-    } finally {
-      setLoading(false);
+      const friendlyMessage =
+        typeof err === 'string'
+          ? err
+          : err?.message || 'Could not send reset code. Please try again.';
+      Alert.alert('Error', friendlyMessage);
     }
   };
 

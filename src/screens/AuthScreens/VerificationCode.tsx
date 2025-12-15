@@ -10,16 +10,17 @@ import {AppColors} from '../../utils/color';
 import {hp, wp} from '../../utils/constants';
 import {fontSize, size} from '../../utils/responsiveFonts';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {saveToken} from '../../store/user/userSlices';
-import {authAPI} from '../../utils/api';
+import {verifyOtpThunk} from '../../store/auth/authRecoverySlice';
 
 const VerificationCode = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
+  const verifyStatus = useAppSelector(
+    state => state.authRecoverySlice.verifyStatus,
+  );
+  const loading = verifyStatus === 'loading';
   const dispatch = useAppDispatch();
-  const role = useAppSelector(state => state.userSlices.role);
   const email = route.params?.email;
   const userId = route.params?.userId;
 
@@ -57,27 +58,14 @@ const VerificationCode = () => {
                   return;
                 }
                 try {
-                  setLoading(true);
-                  const resp = await authAPI.verifyOtp({email, otp});
-                  if (resp?.success) {
-                    navigation.navigate('NewPassword', {email, userId});
-                  } else {
-                    const friendlyMessage = Array.isArray(resp?.message)
-                      ? resp?.message.join('\n')
-                      : resp?.message || 'Invalid OTP.';
-                    Alert.alert('Error', friendlyMessage);
-                  }
+                  await dispatch(verifyOtpThunk({email, otp})).unwrap();
+                  navigation.navigate('NewPassword', {email, userId});
                 } catch (err: any) {
-                  const apiMessage = err?.response?.data?.message;
-                  const friendlyMessage = Array.isArray(apiMessage)
-                    ? apiMessage.join('\n')
-                    : apiMessage || err?.message || 'OTP verification failed. Please try again.';
-                  Alert.alert(
-                    'Error',
-                    friendlyMessage,
-                  );
-                } finally {
-                  setLoading(false);
+                  const friendlyMessage =
+                    typeof err === 'string'
+                      ? err
+                      : err?.message || 'OTP verification failed. Please try again.';
+                  Alert.alert('Error', friendlyMessage);
                 }
               }}
               title={loading ? 'Verifying...' : 'Continue'}

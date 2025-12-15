@@ -35,7 +35,7 @@ import ElephantIcon from '../../assets/svgs/ElephantIcon';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
 import {setSelectedChild, setStudentAbsentModal} from '../../store/user/userSlices';
 import MultiSelectDropdown from '../../components/MultiSelectDropdown';
-import {parentAPI} from '../../utils/api';
+import {fetchParentStudents} from '../../store/parent/parentSlices';
 const fallbackChildImage = require('../../assets/images/child1.jpg');
 
 export default function HomeSreen() {
@@ -48,9 +48,9 @@ export default function HomeSreen() {
   const selectedChild = useAppSelector(state => state.userSlices.selectedChild);
   const role = useAppSelector(state => state.userSlices.role);
   const userId = useAppSelector(state => state.userSlices.userId);
-  const [childrenOptions, setChildrenOptions] = useState<any[]>([]);
-  const [childrenLoading, setChildrenLoading] = useState(false);
-  const [childrenError, setChildrenError] = useState('');
+  const parentStudents = useAppSelector(state => state.parentSlices.students);
+  const parentStatus = useAppSelector(state => state.parentSlices.status);
+  const parentError = useAppSelector(state => state.parentSlices.error);
   const [isEnabled, setIsEnabled] = useState(false);
   const [selectAbsence, setSelectAbsence] = useState('');
   const [preview, setPreview] = useState(false);
@@ -133,7 +133,12 @@ export default function HomeSreen() {
       });
       return;
     }
-    if (reasonOfAbsence && (getDates || getDates?.length > 0) && !preview) {
+
+    const hasDates =
+      (typeof getDates === 'string' && getDates.trim() !== '') ||
+      (Array.isArray(getDates) && getDates.length > 0);
+
+    if (reasonOfAbsence && hasDates && !preview) {
       setPreview(true);
       setSelectAbsence('');
     }
@@ -166,43 +171,22 @@ export default function HomeSreen() {
     if (!isParent || !userId) {
       return;
     }
+    if (parentStatus === 'idle') {
+      dispatch(fetchParentStudents({parentId: userId}));
+    }
+  }, [role, userId, dispatch, parentStatus]);
 
-    const fetchStudents = async () => {
-      try {
-        setChildrenLoading(true);
-        setChildrenError('');
-        const response = await parentAPI.getStudentsByParentId(userId);
-        const students = response?.data || [];
-        const mapped = students.map((s: any) => ({
-          title:
-            `${s.FirstName || ''} ${s.LastName || ''}`.trim() || 'Unknown student',
-          image:
-            typeof s.image === 'string' && s.image.length > 0
-              ? {uri: s.image}
-              : fallbackChildImage,
-          raw: s,
-        }));
-        setChildrenOptions(mapped);
-        if (mapped.length === 1) {
-          dispatch(setSelectedChild(mapped[0]));
-        }
-      } catch (err: any) {
-        setChildrenError(
-          err?.message || 'Unable to load students. Please try again.',
-        );
-      } finally {
-        setChildrenLoading(false);
-      }
-    };
-
-    fetchStudents();
-  }, [role, userId, dispatch]);
+  useEffect(() => {
+    if (parentStatus === 'succeeded' && parentStudents.length === 1) {
+      dispatch(setSelectedChild(parentStudents[0]));
+    }
+  }, [parentStatus, parentStudents, dispatch]);
 
   const handleSelectChild = (item: any) => {
     dispatch(setSelectedChild(item));
   };
 
-  const childName = childrenError
+  const childName = parentError
     ? 'Students unavailable'
     : (selectedChild as any)?.title ||
       `${(selectedChild as any)?.FirstName || ''} ${(selectedChild as any)?.LastName || ''}`.trim() ||
@@ -216,9 +200,9 @@ export default function HomeSreen() {
     (selectedChild as any)?.raw?.BusNo ||
     (selectedChild as any)?.BusNo ||
     null;
-  const busNumberValue = childrenLoading
+  const busNumberValue = parentStatus === 'loading'
     ? 'Loading...'
-    : childrenError
+    : parentError
     ? 'N/A'
     : selectedChild && busNumberRaw
     ? String(busNumberRaw)
@@ -247,7 +231,7 @@ export default function HomeSreen() {
           }}
           onPressRightIcon={() => navigation.navigate('Notification')}
           containerStyle={{backgroundColor: '#141516'}}
-          childrenOptions={childrenOptions}
+          childrenOptions={parentStudents}
           selectedChildOption={selectedChild}
           onSelectChild={item => handleSelectChild(item)}
         />

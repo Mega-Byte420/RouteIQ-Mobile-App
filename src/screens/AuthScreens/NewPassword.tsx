@@ -18,14 +18,15 @@ import { AppColors } from '../../utils/color';
 import { fontSize, size } from '../../utils/responsiveFonts';
 import AppFonts from '../../utils/appFonts';
 import { Controller, useForm } from 'react-hook-form';
-import { useAppSelector } from '../../store/hooks';
-import { authAPI } from '../../utils/api';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { resetPasswordThunk } from '../../store/auth/authRecoverySlice';
 import { Alert } from 'react-native';
 
 const NewPassword = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const type = useAppSelector(state => state.userSlices.forgotType);
+  const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const email = route.params?.email;
   const userId = route.params?.userId;
@@ -53,20 +54,19 @@ const NewPassword = () => {
     }
     try {
       setLoading(true);
-      await authAPI.resetPassword({
-        userId,
-        newPassword: form.new_password,
-      });
+      await dispatch(
+        resetPasswordThunk({
+          userId,
+          newPassword: form.new_password,
+        }),
+      ).unwrap();
       navigation.navigate('SuccessScreen');
     } catch (err: any) {
-      const apiMessage = err?.response?.data?.message;
-      const friendlyMessage = Array.isArray(apiMessage)
-        ? apiMessage.join('\n')
-        : apiMessage || err?.message || 'Could not reset password. Please try again.';
-      Alert.alert(
-        'Error',
-        friendlyMessage,
-      );
+      const friendlyMessage =
+        typeof err === 'string'
+          ? err
+          : err?.message || 'Could not reset password. Please try again.';
+      Alert.alert('Error', friendlyMessage);
     } finally {
       setLoading(false);
     }
