@@ -1,7 +1,7 @@
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import OTPInputView from '@twotalltotems/react-native-otp-input';
 import React, {useState} from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import AppButton from '../../components/AppButton';
 import AuthLayout from '../../layout/AuthLayout';
 import AppStyles from '../../styles/AppStyles';
@@ -10,13 +10,19 @@ import {AppColors} from '../../utils/color';
 import {hp, wp} from '../../utils/constants';
 import {fontSize, size} from '../../utils/responsiveFonts';
 import {useAppDispatch, useAppSelector} from '../../store/hooks';
-import {saveToken} from '../../store/user/userSlices';
+import {verifyOtpThunk} from '../../store/auth/authRecoverySlice';
 
 const VerificationCode = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const [otp, setOtp] = useState('');
+  const verifyStatus = useAppSelector(
+    state => state.authRecoverySlice.verifyStatus,
+  );
+  const loading = verifyStatus === 'loading';
   const dispatch = useAppDispatch();
-  const role = useAppSelector(state => state.userSlices.role);
+  const email = route.params?.email;
+  const userId = route.params?.userId;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -46,15 +52,24 @@ const VerificationCode = () => {
             />
             <Text style={styles.timerText}>00:30</Text>
             <AppButton
-              onPress={() => {
-                if (role === 'Retail') {
-                  navigation.navigate('HomeSreen');
-                  dispatch(saveToken(true));
-                } else {
-                   
+              onPress={async () => {
+                if (!otp || otp.length !== 4) {
+                  Alert.alert('Error', 'Please enter the 4-digit code.');
+                  return;
+                }
+                try {
+                  await dispatch(verifyOtpThunk({email, otp})).unwrap();
+                  navigation.navigate('NewPassword', {email, userId});
+                } catch (err: any) {
+                  const friendlyMessage =
+                    typeof err === 'string'
+                      ? err
+                      : err?.message || 'OTP verification failed. Please try again.';
+                  Alert.alert('Error', friendlyMessage);
                 }
               }}
-              title="Continue"
+              title={loading ? 'Verifying...' : 'Continue'}
+              disabled={loading}
               style={{marginTop: hp(10)}}
             />
 

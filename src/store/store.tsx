@@ -12,10 +12,14 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import userSlices from './user/userSlices';
 import driverSlices from './driver/driverSlices';
+import parentSlices from './parent/parentSlices';
+import authRecoverySlice from './auth/authRecoverySlice';
 
 const reducers = combineReducers({
   userSlices,
   driverSlices,
+  parentSlices,
+  authRecoverySlice,
 });
 
 const persistConfig = {

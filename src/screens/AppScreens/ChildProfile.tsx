@@ -22,10 +22,12 @@ import AppFonts from '../../utils/appFonts';
 import {AppColors} from '../../utils/color';
 import {hp} from '../../utils/constants';
 import {size} from '../../utils/responsiveFonts';
+import {useAppSelector} from '../../store/hooks';
 
 export default function ChildProfile() {
   const navigation = useNavigation();
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const selectedChild = useAppSelector(state => state.userSlices.selectedChild);
+  const [profileImage, setProfileImage] = useState<string | number | null>(null);
 
   const data = [
     {key: '1', value: 'Bus'},
@@ -52,11 +54,32 @@ export default function ChildProfile() {
   });
 
   useEffect(() => {
-    setValue('firstName', 'Jacob');
-    setValue('lastName', 'Jones');
-    setValue('emergencyContactName', 'Tanner');
-    setValue('emergencyContact', '+93123132325');
-  }, []);
+    if (!selectedChild) {
+      return;
+    }
+    const raw = (selectedChild as any).raw || {};
+    const firstName =
+      raw.FirstName || (selectedChild as any).FirstName || (selectedChild as any).title?.split(' ')[0] || '';
+    const lastName =
+      raw.LastName || (selectedChild as any).LastName || (selectedChild as any).title?.split(' ')[1] || '';
+    const emergencyName = raw.ParentName || '';
+    const emergencyPhone = raw.ContactPhone || '';
+    const medical = raw.medical_details || raw.MedicalDetails || '';
+    const note = raw.Address || '';
+    const transport = raw.transportation_preference || raw.TransportationPreference || '';
+
+    setValue('firstName', firstName);
+    setValue('lastName', lastName);
+    setValue('emergencyContactName', emergencyName);
+    setValue('emergencyContact', emergencyPhone);
+    setValue('medicalDetails', medical);
+    setValue('note', note);
+    setValue('transportationPreference', transport);
+
+    if ((selectedChild as any).image) {
+      setProfileImage((selectedChild as any).image);
+    }
+  }, [selectedChild, setValue]);
 
   const requestGalleryPermission = async () => {
     try {
@@ -151,7 +174,9 @@ export default function ChildProfile() {
                   style={styles.image}
                   source={
                     profileImage
-                      ? {uri: profileImage}
+                      ? typeof profileImage === 'string'
+                        ? {uri: profileImage}
+                        : profileImage
                       : require('../../assets/images/profile_image.webp')
                   }
                 />

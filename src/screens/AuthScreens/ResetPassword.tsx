@@ -1,7 +1,7 @@
 import {useNavigation} from '@react-navigation/native';
 import React from 'react';
 import {Controller, useForm} from 'react-hook-form';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import AppButton from '../../components/AppButton';
 import AppInput from '../../components/AppInput';
 import GlobalIcon from '../../components/GlobalIcon';
@@ -11,11 +11,17 @@ import AppFonts from '../../utils/appFonts';
 import {AppColors} from '../../utils/color';
 import {hp, wp} from '../../utils/constants';
 import {fontSize, size} from '../../utils/responsiveFonts';
-import {useAppSelector} from '../../store/hooks';
+import {useAppDispatch, useAppSelector} from '../../store/hooks';
+import {requestPasswordResetThunk} from '../../store/auth/authRecoverySlice';
 
 const ResetPassword = ({route}: any) => {
   const type = useAppSelector(state => state.userSlices.forgotType);
   const navigation = useNavigation();
+  const dispatch = useAppDispatch();
+  const requestStatus = useAppSelector(
+    state => state.authRecoverySlice.requestStatus,
+  );
+  const loading = requestStatus === 'loading';
 
   const {
     control,
@@ -27,8 +33,24 @@ const ResetPassword = ({route}: any) => {
     },
   });
 
-  const onSubmit = () => {
-    navigation.navigate('VerificationCode');
+  const onSubmit = async (data: {email: string}) => {
+    try {
+      const resp: any = await dispatch(
+        requestPasswordResetThunk(data.email),
+      ).unwrap();
+      navigation.navigate('VerificationCode', {
+        email: resp?.email || data.email,
+        username: resp?.username,
+        userId: resp?.userid,
+        otp: resp?.otp,
+      });
+    } catch (err: any) {
+      const friendlyMessage =
+        typeof err === 'string'
+          ? err
+          : err?.message || 'Could not send reset code. Please try again.';
+      Alert.alert('Error', friendlyMessage);
+    }
   };
 
   return (
@@ -75,7 +97,8 @@ const ResetPassword = ({route}: any) => {
             />
             <AppButton
               onPress={handleSubmit(onSubmit)}
-              title="Continue"
+              title={loading ? 'Please wait...' : 'Continue'}
+              disabled={loading}
               style={{marginTop: hp(10)}}
             />
           </View>

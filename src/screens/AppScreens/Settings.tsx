@@ -22,9 +22,9 @@ import {AppColors} from '../../utils/color';
 import {hp} from '../../utils/constants';
 import {size} from '../../utils/responsiveFonts';
 import GuardianIcon from '../../assets/svgs/GuardianIcon';
+import AppConfirmModal from '../../components/AppConfirmModal';
 import {useAppDispatch} from '../../store/hooks';
 import {clearUserInfo, setLogout} from '../../store/user/userSlices';
-import {Alert} from 'react-native';
 
 export default function Settings() {
   const navigation = useNavigation();
@@ -33,6 +33,8 @@ export default function Settings() {
   const toggleSwitch = () => setIsEnabled(previousState => !previousState);
 
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   const openGallery = () => {
     launchImageLibrary({mediaType: 'photo'}, response => {
@@ -197,33 +199,32 @@ export default function Settings() {
 
         <AppButton
           title="Logout"
-          onPress={() => {
-            Alert.alert(
-              'Logout',
-              'Are you sure you want to logout?',
-              [
-                {
-                  text: 'Cancel',
-                  onPress: () => console.log('Logout cancelled'),
-                  style: 'cancel',
-                },
-                {
-                  text: 'Yes',
-                  onPress: () => {
-                    // Clear all user info and token
-                    dispatch(clearUserInfo());
-                    dispatch(setLogout(true));
-                    // Navigation will automatically redirect to AuthStack when token is cleared
-                  },
-                },
-              ],
-              {cancelable: true},
-            );
-          }}
+          onPress={() => setShowLogoutConfirm(true)}
           titleStyle={{fontSize: size.md}}
           style={styles.button}
         />
       </View>
+
+      <AppConfirmModal
+        visible={showLogoutConfirm}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Yes, Logout"
+        cancelText="Cancel"
+        loading={logoutLoading}
+        onCancel={() => {
+          if (logoutLoading) return;
+          setShowLogoutConfirm(false);
+        }}
+        onConfirm={() => {
+          setLogoutLoading(true);
+          // Clear all user info and token
+          dispatch(clearUserInfo());
+          dispatch(setLogout(true));
+          setLogoutLoading(false);
+          setShowLogoutConfirm(false);
+        }}
+      />
     </AppLayout>
   );
 }

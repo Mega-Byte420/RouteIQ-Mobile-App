@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   Image,
   ScrollView,
@@ -12,17 +12,24 @@ import AuthLayout from '../../layout/AuthLayout';
 import AppStyles from '../../styles/AppStyles';
 import AppButton from '../../components/AppButton';
 import { hp, wp } from '../../utils/constants';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import AppInput from '../../components/AppInput';
 import { AppColors } from '../../utils/color';
 import { fontSize, size } from '../../utils/responsiveFonts';
 import AppFonts from '../../utils/appFonts';
 import { Controller, useForm } from 'react-hook-form';
-import { useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { resetPasswordThunk } from '../../store/auth/authRecoverySlice';
+import { Alert } from 'react-native';
 
 const NewPassword = () => {
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const type = useAppSelector(state => state.userSlices.forgotType);
+  const dispatch = useAppDispatch();
+  const [loading, setLoading] = useState(false);
+  const email = route.params?.email;
+  const userId = route.params?.userId;
 
   const {
     control,
@@ -36,8 +43,33 @@ const NewPassword = () => {
     },
   });
 
-  const onSubmit = () => {
-    navigation.navigate('SuccessScreen');
+  const onSubmit = async (form: any) => {
+    if (type === 'username') {
+      navigation.navigate('SuccessScreen');
+      return;
+    }
+    if (form.new_password !== form.confirm_password) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+    try {
+      setLoading(true);
+      await dispatch(
+        resetPasswordThunk({
+          userId,
+          newPassword: form.new_password,
+        }),
+      ).unwrap();
+      navigation.navigate('SuccessScreen');
+    } catch (err: any) {
+      const friendlyMessage =
+        typeof err === 'string'
+          ? err
+          : err?.message || 'Could not reset password. Please try again.';
+      Alert.alert('Error', friendlyMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,7 +118,13 @@ const NewPassword = () => {
                 <Controller
                   name="new_password"
                   control={control}
-                  rules={{ required: 'New Password is required' }}
+                  rules={{
+                    required: 'New Password is required',
+                    minLength: {
+                      value: 8,
+                      message: 'Password must be at least 8 characters long',
+                    },
+                  }}
                   render={({ field: { onChange, value } }) => (
                     <AppInput
                       label="New Password"
@@ -115,7 +153,12 @@ const NewPassword = () => {
                 <Controller
                   name="confirm_password"
                   control={control}
-                  rules={{ required: 'Confirm Password is required' }}
+                  rules={{
+                    required: 'Confirm Password is required',
+                    validate: value =>
+                      value === (control as any)._formValues.new_password ||
+                      'Passwords do not match',
+                  }}
                   render={({ field: { onChange, value } }) => (
                     <AppInput
                       label="Confirm Password"
@@ -144,9 +187,9 @@ const NewPassword = () => {
               </>
             }
             <AppButton
-              onPress={() => navigation.navigate('SuccessScreen')}
-              // onPress={handleSubmit(onSubmit)}
-              title={`Update ${type}`}
+              onPress={handleSubmit(onSubmit)}
+              title={loading ? 'Updating...' : `Update ${type}`}
+              disabled={loading}
               titleStyle={{ textTransform: 'capitalize' }}
               style={{ marginTop: hp(10) }}
             />

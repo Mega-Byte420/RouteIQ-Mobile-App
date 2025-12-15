@@ -31,10 +31,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   handleBack,
   profile_image,
   createRightIcon,
+  childrenOptions,
+  selectedChildOption,
+  onSelectChild,
 }) => {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
   const [isSwitchOn, setIsSwitchOn] = useState(true);
+
+  const dropdownData =
+    childrenOptions && childrenOptions.length > 0 ? childrenOptions : childDropDown;
+  const dropdownDefault =
+    selectedChildOption && (selectedChildOption as any).title
+      ? selectedChildOption
+      : null;
 
   const handleToggle = (newValue: boolean) => {
     setIsSwitchOn(newValue);
@@ -126,11 +136,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             </View>
             <View>
               <SelectDropdown
-                data={childDropDown}
-                defaultValue={childDropDown[0]}
+                data={dropdownData}
+                defaultValue={dropdownDefault}
                 onSelect={(selectedItem, index) => {
-                  dispatch(setSelectedChild(selectedItem))
-                  console.log(selectedItem, index);
+                  if (onSelectChild) {
+                    onSelectChild(selectedItem, index);
+                  } else {
+                    dispatch(setSelectedChild(selectedItem));
+                  }
                 }}
                 renderButton={(selectedItem, isOpened) => {
                   return (
@@ -139,7 +152,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         style={styles.dropdownButtonTxtStyle}
                         numberOfLines={1}
                         ellipsizeMode="tail">
-                        {(selectedItem && selectedItem.title) ||
+                        {(selectedItem && (selectedItem as any).title) ||
                           'Select your child'}
                       </Text>
                       <GlobalIcon library="FontAwesome" name="caret-down" />
@@ -153,7 +166,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         ...styles.dropdownItemStyle,
                         ...(isSelected && {backgroundColor: '#D2D9DF'}),
                       }}>
-                      <Image style={styles.dropdownImage} source={item.image} />
+                      {item?.image ? (
+                        <Image style={styles.dropdownImage} source={item.image} />
+                      ) : null}
                       <Text style={styles.dropdownItemTxtStyle}>
                         {item.title}
                       </Text>

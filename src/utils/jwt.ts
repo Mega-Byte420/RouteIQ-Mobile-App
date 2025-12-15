@@ -61,6 +61,7 @@ export const decodeJWT = (token: string): any => {
     const decoded = JSON.parse(jsonPayload);
     console.log('✅ JWT decoded successfully:', {
       hasSub: !!decoded.sub,
+      sub: decoded.sub,
       hasRole: !!decoded.role,
       hasExp: !!decoded.exp,
       decodedKeys: Object.keys(decoded),

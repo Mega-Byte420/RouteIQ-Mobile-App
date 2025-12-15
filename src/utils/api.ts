@@ -212,6 +212,86 @@ export const authAPI = {
       throw error;
     }
   },
+
+  requestPasswordReset: async (email: string) => {
+    try {
+      console.log('📤 Requesting password reset for:', email);
+      const response = await api.post('/auth/request-password-reset', { email });
+      console.log('✅ Password reset request response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Password reset request failed:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        responseData: error.response?.data,
+      });
+      throw error;
+    }
+  },
+
+  verifyOtp: async (payload: { email: string; otp: string }) => {
+    try {
+      console.log('📤 Verifying OTP for:', payload.email);
+      const response = await api.post('/auth/verify-otp', payload);
+      console.log('✅ OTP verification response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ OTP verification failed:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        responseData: error.response?.data,
+      });
+      throw error;
+    }
+  },
+
+  resetPassword: async (payload: {
+    userId: number | string;
+    newPassword: string;
+  }) => {
+    try {
+      console.log('📤 Resetting password for:', payload.userId);
+      const response = await api.post('/auth/reset-password', {
+        userId: Number(payload.userId),
+        newPassword: payload.newPassword,
+      });
+      console.log('✅ Reset password response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Reset password failed:', {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        responseData: error.response?.data,
+      });
+      throw error;
+    }
+  },
+};
+
+// Parent APIs
+export const parentAPI = {
+  /**
+   * Fetch students for the current parent.
+   * The backend can derive the parent from the JWT; we also send parentId for clarity.
+   */
+  getStudentsByParentId: async (parentId?: number | string) => {
+    try {
+      const response = await api.get('/parent/studentsByParentsId', {
+        params: parentId ? { parentId } : undefined,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('❌ Fetch students by parent failed:', {
+        message: (error as any)?.message,
+        status: (error as any)?.response?.status,
+        data: (error as any)?.response?.data,
+      });
+      throw error;
+    }
+  },
 };
 
 export default api;
